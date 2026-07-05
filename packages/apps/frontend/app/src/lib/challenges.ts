@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 
 export type ChallengeStatus = 'pending' | 'success' | 'failed'
+export type Recurrence = 'weekly' | 'monthly'
 
 export interface Challenge {
   id: string
@@ -11,6 +12,10 @@ export interface Challenge {
   axis: string
   status: ChallengeStatus
   due_date: string | null
+  start_time: string | null
+  end_time: string | null
+  recurrence: Recurrence | null
+  recur_weekdays: number[] | null
   created_at: string
   resolved_at: string | null
 }
@@ -45,6 +50,10 @@ export async function createChallenge(input: {
   title: string
   axis: string
   dueDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  recurrence?: Recurrence | null
+  recurWeekdays?: number[] | null
 }): Promise<Challenge> {
   const { data: auth } = await supabase.auth.getUser()
   const createdBy = auth.user?.id
@@ -59,6 +68,10 @@ export async function createChallenge(input: {
       title: input.title,
       axis: input.axis,
       due_date: input.dueDate ?? null,
+      start_time: input.startTime ?? null,
+      end_time: input.endTime ?? null,
+      recurrence: input.recurrence ?? null,
+      recur_weekdays: input.recurWeekdays ?? null,
     })
     .select()
     .single()

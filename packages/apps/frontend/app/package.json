@@ -17,12 +17,15 @@
     "@fullcalendar/daygrid": "^6.1.21",
     "@fullcalendar/interaction": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
+    "@fullcalendar/rrule": "^6.1.21",
+    "@fullcalendar/timegrid": "^6.1.21",
     "@naht/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hot-toast": "^2.4.1",
-    "react-router-dom": "^7.11.0"
+    "react-router-dom": "^7.11.0",
+    "rrule": "^2.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
