@@ -91,3 +91,10 @@ create policy "members_select_member" on public.family_members
 drop policy if exists "members_insert_self" on public.family_members;
 create policy "members_insert_self" on public.family_members
   for insert with check (user_id = auth.uid());
+
+-- Grants pour le rôle client (les lignes restent filtrées par RLS).
+grant usage on schema public to anon, authenticated;
+grant select, insert on public.family_projects to authenticated;
+grant select, insert on public.family_members to authenticated;
+grant execute on function public.is_member(uuid) to anon, authenticated;
+grant execute on function public.join_family_project(uuid) to authenticated;
