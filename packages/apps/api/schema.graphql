@@ -1,0 +1,57 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""Réponse après vérification du code email"""
+type AuthResponse {
+  """JWT access token"""
+  accessToken: String!
+  email: String!
+
+  """Expiration du token (secondes)"""
+  expiresIn: Int!
+}
+
+"""Utilisateur courant (depuis le cookie)"""
+type CurrentUser {
+  email: String!
+  firstName: String
+  id: String!
+}
+
+type Mutation {
+  """Déconnexion — supprime les cookies"""
+  logout: Boolean!
+
+  """Rafraîchit le token d'accès via le refresh token"""
+  refreshToken: RefreshResponse!
+
+  """Envoie un code de vérification par email"""
+  sendEmailCode(email: String!): Boolean!
+
+  """Vérifie le code email et pose les cookies JWT"""
+  verifyEmailCode(code: String!, email: String!): AuthResponse!
+}
+
+type Query {
+  """Utilisateur authentifié courant (depuis le cookie)"""
+  getCurrentUser: CurrentUser
+
+  """Utilisateur authentifié"""
+  me: User!
+}
+
+"""Réponse après rafraîchissement du token"""
+type RefreshResponse {
+  accessToken: String!
+  expiresIn: Int!
+}
+
+type User {
+  email: String!
+  firstName: String
+  id: String!
+
+  """CREATED | BLOCKED"""
+  status: String!
+}
