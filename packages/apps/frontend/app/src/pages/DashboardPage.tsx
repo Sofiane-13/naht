@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -10,6 +11,7 @@ import {
 
 export function DashboardPage() {
   const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [projects, setProjects] = useState<FamilyProject[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -87,7 +89,8 @@ export function DashboardPage() {
           projects.map((project) => (
             <div
               key={project.id}
-              className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+              onClick={() => navigate(`/project/${project.id}`)}
+              className="flex cursor-pointer items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-500 hover:shadow"
             >
               <div>
                 <div className="font-medium text-gray-900">{project.name}</div>
@@ -96,7 +99,10 @@ export function DashboardPage() {
                 </div>
               </div>
               <button
-                onClick={() => copyLink(project)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  copyLink(project)
+                }}
                 className="rounded-lg border border-primary-500 px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50"
               >
                 Copier le lien d'invitation

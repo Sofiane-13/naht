@@ -16,6 +16,16 @@ export interface FamilyMember {
   joined_at: string
 }
 
+export async function getProject(id: string): Promise<FamilyProject> {
+  const { data, error } = await supabase
+    .from('family_projects')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function listProjects(): Promise<FamilyProject[]> {
   const { data, error } = await supabase
     .from('family_projects')
