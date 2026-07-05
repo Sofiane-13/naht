@@ -44,6 +44,7 @@ export async function createChallenge(input: {
   assignedTo: string
   title: string
   axis: string
+  dueDate?: string | null
 }): Promise<Challenge> {
   const { data: auth } = await supabase.auth.getUser()
   const createdBy = auth.user?.id
@@ -57,6 +58,7 @@ export async function createChallenge(input: {
       assigned_to: input.assignedTo,
       title: input.title,
       axis: input.axis,
+      due_date: input.dueDate ?? null,
     })
     .select()
     .single()

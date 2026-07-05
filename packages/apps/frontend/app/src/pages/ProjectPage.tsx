@@ -1,8 +1,21 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useParams, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ChallengeAxis, CHALLENGE_AXIS_LABELS } from '@naht/shared'
 import { useAuth } from '../contexts/AuthContext'
+
+const AgendaCalendar = lazy(() =>
+  import('../components/AgendaCalendar').then((m) => ({
+    default: m.AgendaCalendar,
+  })),
+)
 import {
   getProject,
   inviteLink,
@@ -33,6 +46,7 @@ export function ProjectPage() {
   const [axis, setAxis] = useState<ChallengeAxis>(ChallengeAxis.SPORT)
   const [title, setTitle] = useState('')
   const [openMember, setOpenMember] = useState<string | null>(null)
+  const [showCalendar, setShowCalendar] = useState(false)
 
   async function reload() {
     const [c, m] = await Promise.all([listChallenges(id), listMembers(id)])
@@ -159,7 +173,33 @@ export function ProjectPage() {
       </form>
 
       <section className="mt-6">
-        <h2 className="text-sm font-semibold text-gray-800">Mon agenda</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-800">Mon agenda</h2>
+          <button
+            onClick={() => setShowCalendar((v) => !v)}
+            className="rounded-lg border border-primary-500 px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50"
+          >
+            📅 {showCalendar ? 'Vue liste' : 'Remplir mon agenda'}
+          </button>
+        </div>
+
+        {showCalendar && (
+          <div className="mt-3">
+            <Suspense
+              fallback={
+                <p className="text-sm text-gray-400">Chargement du calendrier…</p>
+              }
+            >
+              <AgendaCalendar
+                projectId={id}
+                me={me}
+                challenges={challenges}
+                onChanged={reload}
+              />
+            </Suspense>
+          </div>
+        )}
+
         <div className="mt-2 space-y-2">
           {myPending.length === 0 ? (
             <p className="text-sm text-gray-400">Aucun challenge en cours.</p>
