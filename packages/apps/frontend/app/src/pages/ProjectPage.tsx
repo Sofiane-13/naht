@@ -29,6 +29,13 @@ import {
   type Challenge,
   type ProjectMember,
 } from '../lib/challenges'
+import {
+  listEncouragements,
+  sendEncouragement,
+  type Encouragement,
+} from '../lib/encouragements'
+
+const ENCOURAGEMENT_PRESETS = ['Bravo 👏', 'Continue 💪', 'Fier de toi 🙌']
 
 const STATUS_ICON = { success: '✅', failed: '❌', pending: '⏳' } as const
 
@@ -40,7 +47,10 @@ export function ProjectPage() {
   const [project, setProject] = useState<FamilyProject | null>(null)
   const [members, setMembers] = useState<ProjectMember[]>([])
   const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [encouragements, setEncouragements] = useState<Encouragement[]>([])
   const [loading, setLoading] = useState(true)
+  const [encFor, setEncFor] = useState<string | null>(null)
+  const [encMsg, setEncMsg] = useState('')
 
   const [assignedTo, setAssignedTo] = useState('')
   const [axis, setAxis] = useState<ChallengeAxis>(ChallengeAxis.SPORT)
@@ -50,20 +60,22 @@ export function ProjectPage() {
 
   async function reload() {
     const [c, m] = await Promise.all([listChallenges(id), listMembers(id)])
+    const encs = await listEncouragements(c.map((x) => x.id))
     setChallenges(c)
     setMembers(m)
+    setEncouragements(encs)
   }
 
   useEffect(() => {
-    Promise.all([getProject(id), listChallenges(id), listMembers(id)])
-      .then(([p, c, m]) => {
+    getProject(id)
+      .then(async (p) => {
         setProject(p)
-        setChallenges(c)
-        setMembers(m)
         setAssignedTo(me)
+        await reload()
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : 'Erreur'))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, me])
 
   const emailOf = useMemo(() => {
@@ -71,10 +83,34 @@ export function ProjectPage() {
     return (uid: string) => map.get(uid) ?? '—'
   }, [members])
 
+  const encByChallenge = useMemo(() => {
+    const map = new Map<string, Encouragement[]>()
+    for (const e of encouragements) {
+      const list = map.get(e.challenge_id) ?? []
+      list.push(e)
+      map.set(e.challenge_id, list)
+    }
+    return map
+  }, [encouragements])
+
   const myPending = challenges.filter(
     (c) => c.assigned_to === me && c.status === 'pending',
   )
   const feed = challenges.filter((c) => c.status !== 'pending')
+
+  async function sendEnc(challengeId: string, message: string) {
+    const text = message.trim()
+    if (!text) return
+    try {
+      await sendEncouragement(challengeId, text)
+      setEncMsg('')
+      setEncFor(null)
+      await reload()
+      toast.success('Encouragement envoyé 💪')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur')
+    }
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -289,23 +325,89 @@ export function ProjectPage() {
               Rien pour l'instant — les succès et échecs des membres s'afficheront ici.
             </p>
           ) : (
-            feed.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700"
-              >
-                {STATUS_ICON[c.status]}{' '}
-                <span className="font-medium">
-                  {c.assigned_to === me ? 'Toi' : emailOf(c.assigned_to)}
-                </span>{' '}
-                {c.status === 'success' ? 'a réussi' : 'a échoué'} :{' '}
-                {c.title}
-                <span className="text-xs text-gray-400">
-                  {' '}
-                  · {CHALLENGE_AXIS_LABELS[c.axis as ChallengeAxis] ?? c.axis}
-                </span>
-              </div>
-            ))
+            feed.map((c) => {
+              const encs = encByChallenge.get(c.id) ?? []
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700"
+                >
+                  <div>
+                    {STATUS_ICON[c.status]}{' '}
+                    <span className="font-medium">
+                      {c.assigned_to === me ? 'Toi' : emailOf(c.assigned_to)}
+                    </span>{' '}
+                    {c.status === 'success' ? 'a réussi' : 'a échoué'} : {c.title}
+                    <span className="text-xs text-gray-400">
+                      {' '}
+                      · {CHALLENGE_AXIS_LABELS[c.axis as ChallengeAxis] ?? c.axis}
+                    </span>
+                  </div>
+
+                  {(encs.length > 0 || c.assigned_to !== me) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {encs.map((e) => (
+                        <span
+                          key={e.id}
+                          className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-800"
+                        >
+                          💪 {e.message}
+                          <span className="text-amber-500">
+                            {' '}
+                            · {e.from_user === me ? 'toi' : emailOf(e.from_user)}
+                          </span>
+                        </span>
+                      ))}
+                      {c.assigned_to !== me && (
+                        <button
+                          onClick={() =>
+                            setEncFor(encFor === c.id ? null : c.id)
+                          }
+                          className="text-xs font-medium text-primary-600 hover:underline"
+                        >
+                          Encourager
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {encFor === c.id && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {ENCOURAGEMENT_PRESETS.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => sendEnc(c.id, p)}
+                          className="rounded-full border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          sendEnc(c.id, encMsg)
+                        }}
+                        className="flex gap-1"
+                      >
+                        <input
+                          value={encMsg}
+                          onChange={(e) => setEncMsg(e.target.value)}
+                          maxLength={280}
+                          placeholder="Ton mot d'encouragement…"
+                          className="rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-primary-600 px-2 py-1 text-xs font-medium text-white hover:bg-primary-700"
+                        >
+                          Envoyer
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
       </section>
