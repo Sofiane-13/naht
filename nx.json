@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "targetDefaults": {
+    "build": { "cache": true },
+    "lint": { "cache": true },
+    "test:unit": { "cache": true }
+  },
+  "cli": {
+    "packageManager": "pnpm",
+    "analytics": false
+  },
+  "namedInputs": {
+    "sharedGlobals": [],
+    "default": ["sharedGlobals"]
+  }
+}
