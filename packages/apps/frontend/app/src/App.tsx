@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { JoinPage } from './pages/JoinPage'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Toaster position="top-center" />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/join/:code" element={<JoinPage />} />
           <Route
             path="/"
             element={
