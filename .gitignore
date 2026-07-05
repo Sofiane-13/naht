@@ -1,16 +1,12 @@
 node_modules/
 dist/
 build/
-.nx/
 *.log
 .env
 .env.local
 .env.*.local
 
-# Prisma generated client
-packages/apps/api/src/generated/
-
-# Vite / build output
+# Vite build output
 packages/apps/frontend/app/dist/
 
 # Editor / OS

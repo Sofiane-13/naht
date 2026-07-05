@@ -12,21 +12,21 @@ const AXIS_EMOJI: Record<ChallengeAxis, string> = {
 }
 
 export function DashboardPage() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Bonjour {user?.firstName || user?.email} 👋
+            Bonjour {user?.email} 👋
           </h1>
           <p className="text-sm text-gray-500">
-            Choisissez un axe pour lancer votre prochain challenge.
+            Choisis un axe pour lancer ton prochain challenge.
           </p>
         </div>
         <button
-          onClick={() => logout()}
+          onClick={() => signOut()}
           className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
         >
           Se déconnecter

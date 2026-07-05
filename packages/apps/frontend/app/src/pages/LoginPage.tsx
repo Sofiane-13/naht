@@ -1,43 +1,50 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@apollo/client/react'
 import toast from 'react-hot-toast'
-import { SEND_EMAIL_CODE, VERIFY_EMAIL_CODE } from '../graphql/auth'
-import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Step = 'email' | 'code'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { refetchUser } = useAuth()
   const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
-
-  const [sendCode, { loading: sending }] = useMutation(SEND_EMAIL_CODE)
-  const [verifyCode, { loading: verifying }] = useMutation(VERIFY_EMAIL_CODE)
+  const [sending, setSending] = useState(false)
+  const [verifying, setVerifying] = useState(false)
 
   async function handleSendEmail(e: FormEvent) {
     e.preventDefault()
-    try {
-      await sendCode({ variables: { email } })
-      setStep('code')
-      toast.success('Code envoyé ! (en dev, regardez la console de l\'API)')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur d\'envoi')
+    setSending(true)
+    // Envoie un code OTP (crée le compte au premier passage : signup + signin unifiés)
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    })
+    setSending(false)
+    if (error) {
+      toast.error(error.message)
+      return
     }
+    setStep('code')
+    toast.success('Code envoyé — vérifie ta boîte mail 📬')
   }
 
   async function handleVerify(e: FormEvent) {
     e.preventDefault()
-    try {
-      await verifyCode({ variables: { email, code } })
-      await refetchUser()
-      toast.success('Connecté !')
-      navigate('/', { replace: true })
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Code invalide')
+    setVerifying(true)
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email',
+    })
+    setVerifying(false)
+    if (error) {
+      toast.error(error.message)
+      return
     }
+    toast.success('Connecté !')
+    navigate('/', { replace: true })
   }
 
   return (
@@ -45,7 +52,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900">naht</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Connectez-vous ou créez votre compte en un instant.
+          Connecte-toi ou crée ton compte en un instant.
         </p>
 
         {step === 'email' ? (
@@ -64,7 +71,7 @@ export function LoginPage() {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.com"
+                placeholder="toi@exemple.com"
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               />
             </div>

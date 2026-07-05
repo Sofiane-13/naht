@@ -1,50 +1,51 @@
 import {
   createContext,
   useContext,
-  useCallback,
+  useEffect,
+  useState,
   type ReactNode,
 } from 'react'
-import { useQuery, useMutation } from '@apollo/client/react'
-import type { CurrentUser } from '@naht/shared'
-import { GET_CURRENT_USER, LOGOUT } from '../graphql/auth'
-
-interface CurrentUserQuery {
-  getCurrentUser: CurrentUser | null
-}
+import type { Session, User } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
 
 interface AuthContextValue {
-  user: CurrentUser | null
+  session: Session | null
+  user: User | null
   loading: boolean
-  refetchUser: () => Promise<void>
-  logout: () => Promise<void>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data, loading, refetch } = useQuery<CurrentUserQuery>(
-    GET_CURRENT_USER,
-    { fetchPolicy: 'network-only' },
-  )
-  const [logoutMutation] = useMutation(LOGOUT)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const refetchUser = useCallback(async () => {
-    await refetch()
-  }, [refetch])
+  useEffect(() => {
+    // Session initiale (depuis le localStorage)
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
 
-  const logout = useCallback(async () => {
-    await logoutMutation()
-    await refetch()
-  }, [logoutMutation, refetch])
+    // Écoute les changements (login, logout, refresh token)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
 
   return (
     <AuthContext.Provider
-      value={{
-        user: data?.getCurrentUser ?? null,
-        loading,
-        refetchUser,
-        logout,
-      }}
+      value={{ session, user: session?.user ?? null, loading, signOut }}
     >
       {children}
     </AuthContext.Provider>
