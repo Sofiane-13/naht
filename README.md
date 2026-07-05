@@ -52,26 +52,27 @@ VITE_SUPABASE_PUBLISHABLE_KEY="sb_publishable_…"
 > sécurité des données repose sur les **RLS policies** de Supabase (à définir
 > quand on ajoutera des tables applicatives).
 
-## Parcours d'authentification
+## Parcours d'authentification (lien magique)
 
-1. L'utilisateur saisit son **email** → `supabase.auth.signInWithOtp()`.
-   Supabase envoie un email (compte créé au premier passage : **signup** +
-   **signin** unifiés).
-2. L'utilisateur saisit le **code à 6 chiffres** → `supabase.auth.verifyOtp()`.
-3. Supabase établit et persiste la **session** (localStorage) ; `AuthContext`
-   la diffuse à l'app et `ProtectedRoute` garde les pages privées.
+1. L'utilisateur saisit son **email** → `supabase.auth.signInWithOtp()` avec
+   `emailRedirectTo: window.location.origin`. Supabase envoie un email
+   contenant un **lien de connexion** (compte créé au premier passage :
+   **signup** + **signin** unifiés).
+2. L'utilisateur clique le lien → il est renvoyé sur l'app, où
+   `detectSessionInUrl` établit et persiste la **session** (localStorage).
+3. `AuthContext` diffuse la session à l'app et `ProtectedRoute` garde les
+   pages privées.
 
-### ⚙️ Réglage Supabase à faire une fois (pour recevoir le code à 6 chiffres)
+### ⚙️ Réglage Supabase à faire une fois (Redirect URLs)
 
-Par défaut, l'email « Magic Link » de Supabase envoie un **lien**, pas un code.
-Pour afficher le code à 6 chiffres attendu par l'écran de connexion :
+Le lien magique renvoie vers l'app : ces URLs doivent être autorisées.
+Dashboard Supabase → **Authentication → URL Configuration** :
 
-1. Dashboard Supabase → **Authentication → Email Templates → Magic Link**.
-2. Mets un contenu qui expose le token, par exemple :
-   `Ton code de connexion : {{ .Token }}`
-3. (Optionnel) **Authentication → URL Configuration** : ajoute
-   `http://localhost:5173` et l'URL de prod dans *Site URL* / *Redirect URLs*
-   (utile si tu proposes aussi le lien magique).
+- **Site URL** : `https://naht-app.vercel.app`
+- **Redirect URLs** : ajoute `http://localhost:5173/**` et
+  `https://naht-app.vercel.app/**`
+
+Le template email « Magic Link » par défaut convient (aucune modif requise).
 
 ## Déploiement (gratuit)
 

@@ -1,50 +1,30 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 
-type Step = 'email' | 'code'
-
 export function LoginPage() {
-  const navigate = useNavigate()
-  const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
-  const [verifying, setVerifying] = useState(false)
+  const [sent, setSent] = useState(false)
 
-  async function handleSendEmail(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSending(true)
-    // Envoie un code OTP (crée le compte au premier passage : signup + signin unifiés)
+    // Envoie un lien magique. Au clic, Supabase renvoie l'utilisateur sur
+    // l'app (même origine, dev ou prod) déjà authentifié.
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: window.location.origin,
+      },
     })
     setSending(false)
     if (error) {
       toast.error(error.message)
       return
     }
-    setStep('code')
-    toast.success('Code envoyé — vérifie ta boîte mail 📬')
-  }
-
-  async function handleVerify(e: FormEvent) {
-    e.preventDefault()
-    setVerifying(true)
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: 'email',
-    })
-    setVerifying(false)
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-    toast.success('Connecté !')
-    navigate('/', { replace: true })
+    setSent(true)
   }
 
   return (
@@ -55,8 +35,25 @@ export function LoginPage() {
           Connecte-toi ou crée ton compte en un instant.
         </p>
 
-        {step === 'email' ? (
-          <form onSubmit={handleSendEmail} className="mt-6 space-y-4">
+        {sent ? (
+          <div className="mt-6 space-y-4 text-center">
+            <div className="text-4xl">📬</div>
+            <p className="text-sm text-gray-700">
+              Un lien de connexion a été envoyé à{' '}
+              <span className="font-medium">{email}</span>.
+              <br />
+              Ouvre ton email et clique sur le lien pour te connecter.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSent(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              ← Utiliser une autre adresse
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label
                 htmlFor="email"
@@ -80,50 +77,7 @@ export function LoginPage() {
               disabled={sending}
               className="w-full rounded-lg bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
             >
-              {sending ? 'Envoi…' : 'Recevoir un code'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerify} className="mt-6 space-y-4">
-            <p className="text-sm text-gray-600">
-              Un code à 6 chiffres a été envoyé à{' '}
-              <span className="font-medium">{email}</span>.
-            </p>
-            <div>
-              <label
-                htmlFor="code"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Code de vérification
-              </label>
-              <input
-                id="code"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                required
-                autoFocus
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                }
-                placeholder="123456"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-lg tracking-[0.4em] focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={verifying}
-              className="w-full rounded-lg bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
-            >
-              {verifying ? 'Vérification…' : 'Se connecter'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep('email')}
-              className="w-full text-center text-xs text-gray-500 hover:text-gray-700"
-            >
-              ← Changer d'email
+              {sending ? 'Envoi…' : 'Recevoir le lien de connexion'}
             </button>
           </form>
         )}
