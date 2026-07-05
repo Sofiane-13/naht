@@ -26,17 +26,11 @@ export async function listProjects(): Promise<FamilyProject[]> {
 }
 
 export async function createProject(name: string): Promise<FamilyProject> {
-  const { data: auth } = await supabase.auth.getUser()
-  const ownerId = auth.user?.id
-  if (!ownerId) throw new Error('Non authentifié')
-
-  const { data, error } = await supabase
-    .from('family_projects')
-    .insert({ name, owner_id: ownerId })
-    .select()
-    .single()
+  const { data, error } = await supabase.rpc('create_family_project', {
+    p_name: name,
+  })
   if (error) throw error
-  return data
+  return data as FamilyProject
 }
 
 export async function joinProject(inviteCode: string): Promise<FamilyProject> {

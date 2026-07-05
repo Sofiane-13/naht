@@ -50,6 +50,29 @@ create trigger trg_add_owner_as_member
   after insert on public.family_projects
   for each row execute function public.add_owner_as_member();
 
+-- Créer un projet (évite la course RLS sur le RETURNING : le trigger d'appartenance
+-- s'exécute après l'insert, mais la ligne retournée est validée par le RLS SELECT).
+create or replace function public.create_family_project(p_name text)
+returns public.family_projects
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  proj public.family_projects;
+begin
+  if auth.uid() is null then
+    raise exception 'Non authentifié';
+  end if;
+
+  insert into public.family_projects (name, owner_id)
+  values (p_name, auth.uid())
+  returning * into proj;
+
+  return proj;
+end;
+$$;
+
 -- Rejoindre via le code d'invitation (contourne le RLS de lecture de façon contrôlée).
 create or replace function public.join_family_project(p_invite_code uuid)
 returns public.family_projects
@@ -97,4 +120,5 @@ grant usage on schema public to anon, authenticated;
 grant select, insert on public.family_projects to authenticated;
 grant select, insert on public.family_members to authenticated;
 grant execute on function public.is_member(uuid) to anon, authenticated;
+grant execute on function public.create_family_project(text) to authenticated;
 grant execute on function public.join_family_project(uuid) to authenticated;
